@@ -1,0 +1,3 @@
+[submodule "drawerlang"]
+	path = drawerlang
+	url = git@github.com:cmtheit/drawerlang-python.git

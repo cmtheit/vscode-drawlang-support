@@ -1,7 +1,8 @@
 **/*.ts
 **/tsconfig.json
 **/node_modules
-build/*
+/drawerlang
+/webview
 images/*.gif
 images/*.svg
 **/*.js.map

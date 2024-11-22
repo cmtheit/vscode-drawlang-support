@@ -1,4 +1,5 @@
 {
-    "svg.preview.background": "black",
-    "svg.minify.prefixIds": false
+  "svg.preview.background": "black",
+  "svg.minify.prefixIds": false,
+  "svg.pathDataHighlight": true
 }

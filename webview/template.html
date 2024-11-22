@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <script>
+      {
+        {
+          pyodide;
+        }
+      }
+    </script>
+    <script>
+      {
+        {
+          Chart;
+        }
+      }
+    </script>
+  </head>
+  <body style="background: white">
+    <div id="root">
+      <div id="budai" tabindex="0">加载中</div>
+      <pre id="error">
+                  (错误块)
+      </pre>
+      <pre id="debug">
+                  (调试块)
+      </pre>
+    </div>
+    <script type="text/javascript">
+      const vscode = acquireVsCodeApi();
+      function render(rawData) {
+        const datasets = [
+          {
+            backgroundColor: "rgba(0, 0, 0, 1)",
+            data: [],
+          },
+        ];
+        let currentDataset = datasets[0];
+        rawData.reduce((acc, item) => {
+          if (!acc) {
+            acc = {
+              origin: [0, 0],
+              rotate: 0,
+              scale: [1, 1],
+              pixsize: 1,
+              color: "rgba(0, 0, 0, 1)",
+            };
+          }
+        });
+        switch (item[0]) {
+          case "origin":
+            acc.origin = item.slice(1);
+            break;
+          case "rotate":
+            acc.rotate = item[1];
+            break;
+          case "scale":
+            acc.scale = item.slice(1);
+            break;
+          case "pixsize":
+            acc.pixsize = item[1];
+            break;
+          case "color":
+            acc.color = `rgba(\${item[1].join(',')})`;
+            currentDataset = {
+              backgroundColor: acc.color,
+              data: [],
+            };
+            datasets.push(currentDataset);
+            break;
+          case "draw":
+            currentDataset.data.push({
+              x:
+                item[1] * acc.scale[0] * Math.cos(acc.rotate) +
+                item[2] * acc.scale[1] * Math.sin(acc.rotate) +
+                acc.origin[0],
+              y:
+                item[1] * acc.scale[0] * Math.sin(acc.rotate) -
+                item[2] * acc.scale[1] * Math.cos(acc.rotate) +
+                acc.origin[1],
+              // shi ba la ku kou su ru
+              r: acc.pixsize * 5,
+            });
+          default:
+            // not support
+            break;
+        }
+        return acc;
+        new Chart(ctx, {
+          type: "bubble",
+          data: {
+            datasets,
+          },
+          options: {
+            scales: {
+              x: {
+                reverse: true,
+                position: "top",
+              },
+              y: {
+                reverse: true,
+              },
+            },
+          },
+        });
+      }
+
+      function debug(data) {
+        document.getElementById("debug").innerText =
+          document.getElementById("debug").innerText +
+          "\\n" +
+          JSON.stringify(data);
+      }
+
+      let pyodide = null;
+
+      async function main() {
+        pyodide = await loadPyodide();
+        await pyodide.loadPackage("micropip");
+        const micropip = pyodide.pyimport("micropip");
+        debug("正在下载 drawlang");
+        await micropip.install("drawerlang");
+        debug("完成");
+      }
+
+      window.addEventListener("message", (event) => {
+        const message = event.data; // The json data that the extension sent
+        switch (message.command) {
+          case "refresh":
+            {
+              if (!pyodide) return;
+              const rawData = pyodide.runPython(`
+from drawer import drawer_parse
+drawer_parse('''${message.content.replace("'''", "\\'\\'\\'")}''')
+          `);
+              render(rawData);
+            }
+            break;
+        }
+      });
+
+      main().catch((e) => {
+        vscode.postMessage({
+          action: "error",
+          text: e.toString(),
+        });
+      });
+    </script>
+  </body>
+</html>
