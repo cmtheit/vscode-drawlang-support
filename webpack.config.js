@@ -31,10 +31,6 @@ const config = {
           },
         ],
       },
-      {
-        test: /\.html$/i,
-        use: "raw-loader",
-      },
     ],
   },
 };

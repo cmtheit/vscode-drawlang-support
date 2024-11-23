@@ -1,0 +1,47 @@
+{
+  "For Loop": {
+    "prefix": [
+      "for"
+    ],
+    "body": [
+      "FOR ${1:T} FROM ${2:0} TO ${3:100} STEP ${4:1} DRAW (${5:T}, ${6:0});"
+    ],
+    "description": "A for loop."
+  },
+  "origin": {
+    "prefix": [
+      "origin"
+    ],
+    "body": [
+      "ORIGIN IS (${1:0}, ${2:0});"
+    ],
+    "description": "origin statement"
+  },
+  "draw": {
+    "prefix": [
+      "draw"
+    ],
+    "body": [
+      "DRAW (${1:0}, ${2:0});"
+    ],
+    "description": "draw statement"
+  },
+  "rotate": {
+    "prefix": [
+      "rotate"
+    ],
+    "body": [
+      "ROTATE IS ${1:0};"
+    ],
+    "description": "rotate statement"
+  },
+  "pixel": {
+    "prefix": [
+      "pixel"
+    ],
+    "body": [
+      "PIXSIZE IS ${1:1};"
+    ],
+    "description": "pixel statement"
+  }
+}

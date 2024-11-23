@@ -4,6 +4,6 @@
 
 ## 示例图片
 
-<img src="images/screenshot.png" />
+![example1](images/screenshot.png)
 
 **Enjoy!**

@@ -127,22 +127,22 @@ export class DrawerPreviwerContentProvider implements vscode.Disposable {
     this.debug =
       DrawerPreviwerContentProvider.$context.extensionMode ===
       vscode.ExtensionMode.Development;
-    this.disposable = vscode.workspace.onDidChangeTextDocument((e) =>
+    this.disposable = vscode.workspace.onDidSaveTextDocument((e) =>
       this.onDidChangeTextDocument(e)
     );
   }
 
-  onDidChangeTextDocument(e: vscode.TextDocumentChangeEvent): any {
+  onDidChangeTextDocument(document: vscode.TextDocument): any {
     if (this.isLocked) {
       // 锁定模式显示
-      if (e.document.uri.toString() == this.previewUri) {
-        this.showDocument(e.document);
+      if (document.uri.toString() == this.previewUri) {
+        this.showDocument(document);
       }
       return;
     }
-    if (this.isDrawerLangDocument(e.document)) {
+    if (this.isDrawerLangDocument(document)) {
       // 显示活动的
-      this.showDocument(e.document);
+      this.showDocument(document);
       return;
     }
   }

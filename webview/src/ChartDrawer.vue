@@ -1,9 +1,10 @@
 <script lang="ts" setup>
-import { ref, watch } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { Bubble } from 'vue-chartjs';
-import { Chart as ChartJS, Tooltip, CategoryScale, LinearScale, PointElement } from 'chart.js'
+import { Chart as ChartJS, Tooltip, LinearScale, PointElement } from 'chart.js'
+import zoomPlugin from 'chartjs-plugin-zoom';
 
-ChartJS.register(Tooltip, CategoryScale, LinearScale, PointElement)
+ChartJS.register(Tooltip, LinearScale, PointElement, zoomPlugin)
 
 type Command = 
   ["origin", number, number] 
@@ -24,8 +25,43 @@ const datasets = ref<{
     x: number;
     y: number;
     r: number;
+    origin: [number, number];
+    rotate: number;
+    scale: [number, number];
+    xOrigin: number;
+    yOrigin: number;
   }[];
 }[]>([]);
+
+const maxXValue = computed(() => {
+  return datasets.value.reduce((acc, dataset) => {
+    return Math.max(acc, ...dataset.data.map((item) => item.x + item.r / 2));
+  }, 0) + 100;
+})
+
+const maxYValue = computed(() => {
+  return datasets.value.reduce((acc, dataset) => {
+    return Math.max(acc, ...dataset.data.map((item) => item.y + item.r / 2));
+  }, 0) + 100;
+})
+
+// current drawing state
+const state = ref<{
+  origin: [number, number];
+  rotate: number;
+  scale: [number, number];
+  pixsize: number;
+  color: string;
+}>({
+  origin: [0, 0],
+  rotate: 0,
+  scale: [1, 1],
+  pixsize: 1,
+  color: "rgba(0, 0, 0, 1)",
+});
+
+const zoomLevel = ref(1);
+const responsiveLevel = ref(1);
 
 watch(() => props.dataId, () => {
   const datasetsDraft: typeof datasets.value = [
@@ -34,14 +70,15 @@ watch(() => props.dataId, () => {
       data: [],
     },
   ];
+  const stateDraft: typeof state.value = {
+    origin: [0, 0],
+    rotate: 0,
+    scale: [1, 1],
+    pixsize: 1,
+    color: "rgba(0, 0, 0, 1)",
+  }
   let currentDataset = datasetsDraft[0];
-  props.rawData.reduce<{ 
-    origin: [number, number]; 
-    rotate: number; 
-    scale: [number, number], 
-    pixsize: number; 
-    color: string; 
-  }>((acc, item) => {
+  props.rawData.reduce<typeof state.value>((acc, item) => {
     switch (item[0]) {
       case "origin":
         acc.origin = [item[1], item[2]];
@@ -73,51 +110,110 @@ watch(() => props.dataId, () => {
             item[1] * acc.scale[0] * Math.sin(acc.rotate) -
             item[2] * acc.scale[1] * Math.cos(acc.rotate) +
             acc.origin[1],
-          // shi ba ra ku kou su ru
-          r: acc.pixsize,
+          r: acc.pixsize * zoomLevel.value,
+          origin: acc.origin,
+          rotate: acc.rotate,
+          scale: acc.scale,
+          xOrigin: item[1],
+          yOrigin: item[2],
         });
       default:
         // not support
         break;
     }
     return acc;
-  }, {
-    origin: [0, 0],
-    rotate: 0,
-    scale: [1, 1],
-    pixsize: 1,
-    color: "rgba(0, 0, 0, 1)",
-  });
-  datasets.value = datasetsDraft;
+  }, stateDraft);
+  state.value = stateDraft;
+  datasets.value = datasetsDraft.reverse();
+})
+
+watch(() => responsiveLevel.value, (scale) => {
+  datasets.value.forEach((dataset) => {
+    dataset.data.forEach((item) => {
+      item.r = state.value.pixsize * scale;
+    })
+  })
 })
 
 </script>
 
 <template>
+  <div>
+    <!--在一行显示当前state-->
+    <div>
+      <div>原点: {{ state.origin }}</div>
+      <div>旋转: {{ state.rotate }}</div>
+      <div>放缩: {{ state.scale }}</div>
+      <div>宽度: {{ state.pixsize }}</div>
+      <div>颜色: {{ state.color }}</div>
+    </div>
+  </div>
   <Bubble 
     :key="dataId"
     :data="{ 
       datasets
     }" 
+    :plugins="[zoomPlugin]"
     :options="{ 
-      
+      animation: {
+        duration: 0
+      },
+      elements: {
+        point: {
+          borderWidth: 0
+        }
+      },
       scales: {
         x: {
           min: 0,
-          stacked: true,
+          max: maxXValue,
           position: 'top',
           alignToPixels: true,
-
         },
         y: {
           min: 0,
-          stacked: true,
+          max: maxYValue,
           reverse: true,
           position: 'left',
           alignToPixels: true,
         },
       },
-      aspectRatio: 1
+      plugins: {
+        zoom: {
+          pan: {
+            enabled: true,
+          },
+          zoom: {
+            wheel: {
+              enabled: true,
+              modifierKey: 'ctrl',
+            },
+            mode: 'xy',
+            onZoomComplete({ chart }) {
+              zoomLevel = chart.getZoomLevel();
+            },
+            onZoomRejected(context) {
+              console.log('rejected', context);
+            },
+          },
+          limits: {
+            x: {
+              min: 0,
+              max: 'original',
+              minRange: maxXValue / 10,
+            },
+            y: {
+              min: 0,
+              max: 'original',
+              minRange: maxYValue / 10,
+            }
+          }
+        }
+      },
+      aspectRatio: maxXValue / maxYValue,
+      onResize: (chart, size) => {
+        responsiveLevel = size.width / maxXValue;
+      }
     }"
   />
 </template>

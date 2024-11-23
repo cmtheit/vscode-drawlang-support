@@ -28,13 +28,37 @@
     "nx": {
         "namedInputs": {
             "extensionSrc": [
-                "{projectRoot}/src"
+                "{projectRoot}/src",
+                "webpack.config.js"
             ]
         },
         "targets": {
-            "build": {
+            "copy-parser": {
                 "dependsOn": [
                     "^build"
+                ],
+                "inputs": [
+                    "drawerlang/src/drawer/parser/ts"
+                ],
+                "outputs": [
+                    "{projectRoot}/src/parser"
+                ]
+            },
+            "copy-webview": {
+                "dependsOn": [
+                    "^build"
+                ],
+                "inputs": [
+                    "webview/dist"
+                ],
+                "outputs": [
+                    "{projectRoot}/out"
+                ]
+            },
+            "build": {
+                "dependsOn": [
+                    "copy-parser",
+                    "copy-webview"
                 ],
                 "inputs": [
                     "extensionSrc"
@@ -67,32 +91,14 @@
                     "when": "editorLangId == drawer && !config.drawer.preview.disable",
                     "group": "navigation"
                 }
-            ],
-            "editor/context": [
-                {
-                    "command": "_svg.minifySvg",
-                    "when": "editorLangId == svg",
-                    "group": "2"
-                },
-                {
-                    "command": "svg.copyDataUri",
-                    "group": "2",
-                    "when": "resourceLangId == svg"
-                }
-            ],
-            "explorer/context": [
-                {
-                    "command": "_svg.showSvgByUri",
-                    "when": "resourceLangId == svg && !config.svg.preview.disable",
-                    "group": "navigation"
-                },
-                {
-                    "command": "_svg.minifySvgToFile",
-                    "when": "resourceLangId == svg && !config.svg.preview.disable",
-                    "group": "1_modification"
-                }
             ]
         },
+        "snippets": [
+            {
+                "language": "drawer",
+                "path": "./snippets/drawer.snippts.json"
+            }
+        ],
         "configuration": {
             "title": "%configuration.title%",
             "properties": {
@@ -142,7 +148,9 @@
     },
     "scripts": {
         "vscode:prepublish": "webpack --mode production",
-        "build": "cp -r drawerlang/src/drawer/parser/ts src/parser/ && webpack --mode development && mkdir -p out/assets && cp -r webview/dist/* out/",
+        "cp-parser": "cp -r drawerlang/src/drawer/parser/ts src/parser/",
+        "cp-webview": "cp -r webview/dist/* out/",
+        "build": "webpack --mode development",
         "update-vscode": "vscode-install"
     },
     "dependencies": {
