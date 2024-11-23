@@ -3,5 +3,5 @@
 **/node_modules
 /drawerlang
 /webview
-images/*.svg
 **/*.js.map
+.nx
