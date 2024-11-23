@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { computed, ref, watch } from 'vue';
+import { computed, nextTick, ref, watch } from 'vue';
 import { Bubble } from 'vue-chartjs';
 import { Chart as ChartJS, Tooltip, LinearScale, PointElement } from 'chart.js'
 import zoomPlugin from 'chartjs-plugin-zoom';
@@ -35,13 +35,13 @@ const datasets = ref<{
 
 const maxXValue = computed(() => {
   return datasets.value.reduce((acc, dataset) => {
-    return Math.max(acc, ...dataset.data.map((item) => item.x + item.r / 2));
+    return Math.max(acc, ...dataset.data.map((item) => item.x));
   }, 0) + 100;
 })
 
 const maxYValue = computed(() => {
   return datasets.value.reduce((acc, dataset) => {
-    return Math.max(acc, ...dataset.data.map((item) => item.y + item.r / 2));
+    return Math.max(acc, ...dataset.data.map((item) => item.y));
   }, 0) + 100;
 })
 
@@ -62,6 +62,8 @@ const state = ref<{
 
 const zoomLevel = ref(1);
 const responsiveLevel = ref(1);
+
+const scale = computed(() => responsiveLevel.value * zoomLevel.value);
 
 watch(() => props.dataId, () => {
   const datasetsDraft: typeof datasets.value = [
@@ -110,7 +112,7 @@ watch(() => props.dataId, () => {
             item[1] * acc.scale[0] * Math.sin(acc.rotate) -
             item[2] * acc.scale[1] * Math.cos(acc.rotate) +
             acc.origin[1],
-          r: acc.pixsize * zoomLevel.value,
+          r: acc.pixsize / 2,
           origin: acc.origin,
           rotate: acc.rotate,
           scale: acc.scale,
@@ -127,10 +129,10 @@ watch(() => props.dataId, () => {
   datasets.value = datasetsDraft.reverse();
 })
 
-watch(() => responsiveLevel.value, (scale) => {
+watch(() => scale.value, (scale) => {
   datasets.value.forEach((dataset) => {
     dataset.data.forEach((item) => {
-      item.r = state.value.pixsize * scale;
+      item.r = state.value.pixsize / 2 * scale;
     })
   })
 })
@@ -140,7 +142,7 @@ watch(() => responsiveLevel.value, (scale) => {
 <template>
   <div>
     <!--在一行显示当前state-->
-    <div>
+    <div class="status">
       <div>原点: {{ state.origin }}</div>
       <div>旋转: {{ state.rotate }}</div>
       <div>放缩: {{ state.scale }}</div>
@@ -149,6 +151,7 @@ watch(() => responsiveLevel.value, (scale) => {
     </div>
   </div>
   <Bubble 
+    id="bubble-chart"
     :key="dataId"
     :data="{ 
       datasets
@@ -192,9 +195,6 @@ watch(() => responsiveLevel.value, (scale) => {
             onZoomComplete({ chart }) {
               zoomLevel = chart.getZoomLevel();
             },
-            onZoomRejected(context) {
-              console.log('rejected', context);
-            },
           },
           limits: {
             x: {
@@ -217,3 +217,12 @@ watch(() => responsiveLevel.value, (scale) => {
     }"
   />
 </template>
+
+<style scoped>
+.status {
+  display: flex;
+  justify-content: space-between;
+  padding: 10px;
+  background-color: #f0f0f0;
+}
+</style>
